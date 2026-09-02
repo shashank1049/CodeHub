@@ -8,6 +8,13 @@ import {
 } from "../controllers/comment.controller.js";
 
 import { verifyJWT } from "../middlewares/auth.middleware.js";
+import {
+    validateCreateComment,
+    validateUpdateComment,
+} from "../validators/comment.validator.js";
+
+
+
 
 const router = Router();
 
@@ -19,12 +26,14 @@ router.get(
 router.post(
     "/project/:projectId",
     verifyJWT,
+    validateCreateComment,
     createComment
 );
 
 router.patch(
     "/:commentId",
     verifyJWT,
+    validateUpdateComment,
     updateComment
 );
 

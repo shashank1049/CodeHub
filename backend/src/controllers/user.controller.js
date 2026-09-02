@@ -5,6 +5,8 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import { validatePassword } from "../utils/validatePasseord.js";
 import Project from "../models/project.model.js";
+import Comment from "../models/comment.model.js";
+import { getGithubRepositories, getGithubRepository } from "../services/github.service.js";
 
 
 
@@ -358,25 +360,27 @@ const updateProfile = asyncHandler(async (req, res) => {
 const getDeveloperProfile = asyncHandler(async (req, res) => {
     const { username } = req.params;
 
+    if (!username?.trim()) {
+        throw new ApiError(400, "Username is required");
+    }
+
     const user = await User.findOne({
-        username: username.toLowerCase(),
+        username: username.trim().toLowerCase(),
     }).select(
-        "-password -refreshToken -role"
+        "-password -refreshToken -role -email"
     );
 
     if (!user) {
-        throw new ApiError(
-            404,
-            "Developer not found"
-        );
+        throw new ApiError(404, "Developer not found");
     }
 
     const projects = await Project.find({
         owner: user._id,
     })
-        .sort({
-            createdAt: -1,
-        })
+        .sort({ createdAt: -1 })
+        .select(
+            "title description techStack githubUrl liveUrl thumbnail likes createdAt updatedAt"
+        )
         .lean();
 
     const projectsCount = projects.length;
@@ -387,15 +391,38 @@ const getDeveloperProfile = asyncHandler(async (req, res) => {
         0
     );
 
+    const totalComments = await Comment.countDocuments({
+        project: {
+            $in: projects.map(
+                (project) => project._id
+            ),
+        },
+    });
+
+    const formattedProjects = projects.map(
+        (project) => {
+            const {
+                likes,
+                ...projectData
+            } = project;
+
+            return {
+                ...projectData,
+                likesCount: likes?.length || 0,
+            };
+        }
+    );
+
     return res.status(200).json(
         new ApiResponse(
             200,
             {
                 user,
-                projects,
+                projects: formattedProjects,
                 stats: {
                     projectsCount,
                     totalLikes,
+                    totalComments,
                 },
             },
             "Developer profile fetched successfully"
@@ -405,13 +432,107 @@ const getDeveloperProfile = asyncHandler(async (req, res) => {
 
 
 
+const getGithubRepositoriesForUser = asyncHandler(async (req, res) => {
+    const { username } = req.params;
+
+    const {
+        page = 1,
+        limit = 10,
+    } = req.query;
+
+    if (!username?.trim()) {
+        throw new ApiError(400, "Username is required");
+    }
+
+    const user = await User.findOne({
+        username: username.trim().toLowerCase(),
+    }).select("githubUsername");
+
+    if (!user) {
+        throw new ApiError(404, "Developer not found");
+    }
+
+    if (!user.githubUsername?.trim()) {
+        throw new ApiError(
+            404,
+            "GitHub username is not connected"
+        );
+    }
+
+    const githubData = await getGithubRepositories(
+        user.githubUsername,
+        page,
+        limit
+    );
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                githubUsername: user.githubUsername,
+                ...githubData,
+            },
+            "GitHub repositories fetched successfully"
+        )
+    );
+});
 
 
 
 
+const getGithubRepositoryForUser = asyncHandler(
+    async (req, res) => {
+        const { username, repoName } = req.params;
 
+        if (!username?.trim()) {
+            throw new ApiError(
+                400,
+                "Username is required"
+            );
+        }
 
+        if (!repoName?.trim()) {
+            throw new ApiError(
+                400,
+                "Repository name is required"
+            );
+        }
 
+        const user = await User.findOne({
+            username: username.trim().toLowerCase(),
+        }).select("githubUsername");
+
+        if (!user) {
+            throw new ApiError(
+                404,
+                "Developer not found"
+            );
+        }
+
+        if (!user.githubUsername?.trim()) {
+            throw new ApiError(
+                404,
+                "GitHub username is not connected"
+            );
+        }
+
+        const repository = await getGithubRepository(
+            user.githubUsername,
+            repoName.trim()
+        );
+
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                {
+                    githubUsername: user.githubUsername,
+                    repository,
+                },
+                "GitHub repository fetched successfully"
+            )
+        );
+    }
+);
 
 
 
@@ -426,5 +547,7 @@ export {
     refreshAccessToken,
     changePassword,
     updateProfile,
-    getDeveloperProfile
+    getDeveloperProfile,
+    getGithubRepositoriesForUser,
+    getGithubRepositoryForUser
 }

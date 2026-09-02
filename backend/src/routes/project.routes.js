@@ -12,16 +12,23 @@ import {
 } from "../controllers/project.controller.js";
 
 import { verifyJWT } from "../middlewares/auth.middleware.js";
+import {
+    validateCreateProject,
+    validateUpdateProject,
+} from "../validators/project.validator.js";
+
+
+
 
 const router = Router();
 
 router.post(
     "/",
-    verifyJWT,
+    verifyJWT,validateCreateProject,
     createProject
 );
 router.get("/:projectId", optionalAuth, getProjectById);
-router.patch("/:projectId", verifyJWT, updateProject);
+router.patch("/:projectId", verifyJWT, validateUpdateProject, updateProject);
 router.delete("projectId", verifyJWT, deleteProject);
 router.post( "/:projectId/like", verifyJWT, likeProject);
 
