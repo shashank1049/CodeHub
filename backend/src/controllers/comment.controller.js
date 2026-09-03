@@ -4,6 +4,7 @@ import Project from "../models/project.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import {createNotification,} from "../services/notification.service.js";
 
 
 
@@ -40,6 +41,15 @@ const createComment = asyncHandler(async (req, res) => {
         "owner",
         "fullName username avatar"
     );
+
+    await createNotification({
+        recipient: project.owner,
+        sender: req.user._id,
+        type: "COMMENT",
+        project: project._id,
+        comment: comment._id,
+        message: `${req.user.username} commented on your project`,
+    });
 
     return res.status(201).json(
         new ApiResponse(

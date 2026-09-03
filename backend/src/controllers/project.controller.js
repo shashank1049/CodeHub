@@ -8,11 +8,10 @@ import {
     uploadImage,
     deleteImage,
 } from "../services/image.service.js";
+import {createNotification,} from "../services/notification.service.js";
 
 
-// ==========================================
-// CREATE PROJECT
-// ==========================================
+
 
 const createProject = asyncHandler(async (req, res) => {
     const {
@@ -59,9 +58,7 @@ const createProject = asyncHandler(async (req, res) => {
 });
 
 
-// ==========================================
-// GET ALL PROJECTS
-// ==========================================
+
 
 const getAllProjects = asyncHandler(async (req, res) => {
     const {
@@ -347,9 +344,6 @@ const getAllProjects = asyncHandler(async (req, res) => {
 });
 
 
-// ==========================================
-// GET PROJECT BY ID
-// ==========================================
 
 const getProjectById = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
@@ -399,9 +393,6 @@ const getProjectById = asyncHandler(async (req, res) => {
 });
 
 
-// ==========================================
-// UPDATE PROJECT
-// ==========================================
 
 const updateProject = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
@@ -502,9 +493,7 @@ const updateProject = asyncHandler(async (req, res) => {
 });
 
 
-// ==========================================
-// DELETE PROJECT
-// ==========================================
+
 
 const deleteProject = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
@@ -542,11 +531,10 @@ const deleteProject = asyncHandler(async (req, res) => {
 });
 
 
-// ==========================================
-// LIKE PROJECT
-// ==========================================
+
 
 const likeProject = asyncHandler(async (req, res) => {
+    
     const { projectId } = req.params;
     const userId = req.user._id;
 
@@ -577,6 +565,13 @@ const likeProject = asyncHandler(async (req, res) => {
     project.likes.push(userId);
 
     await project.save();
+    await createNotification({
+        recipient: project.owner,
+        sender: req.user._id,
+        type: "LIKE",
+        project: project._id,
+        message: `${req.user.username} liked your project`,
+    });
 
     return res.status(200).json(
         new ApiResponse(
@@ -591,9 +586,6 @@ const likeProject = asyncHandler(async (req, res) => {
 });
 
 
-// ==========================================
-// UNLIKE PROJECT
-// ==========================================
 
 const unlikeProject = asyncHandler(
     async (req, res) => {
