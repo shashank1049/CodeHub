@@ -3,11 +3,16 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import Comment from "../models/comment.model.js";
-import {uploadToCloudinary, deleteFromCloudinary,} from "../services/cloudinary.service.js";
+
+import {
+    uploadImage,
+    deleteImage,
+} from "../services/image.service.js";
 
 
-
-
+// ==========================================
+// CREATE PROJECT
+// ==========================================
 
 const createProject = asyncHandler(async (req, res) => {
     const {
@@ -16,7 +21,6 @@ const createProject = asyncHandler(async (req, res) => {
         techStack,
         githubUrl,
         liveUrl,
-        thumbnail,
     } = req.body;
 
     if (!title || !description || !techStack) {
@@ -26,7 +30,10 @@ const createProject = asyncHandler(async (req, res) => {
         );
     }
 
-    if (!Array.isArray(techStack) || techStack.length === 0) {
+    if (
+        !Array.isArray(techStack) ||
+        techStack.length === 0
+    ) {
         throw new ApiError(
             400,
             "Tech stack must contain at least one technology"
@@ -39,7 +46,6 @@ const createProject = asyncHandler(async (req, res) => {
         techStack,
         githubUrl,
         liveUrl,
-        thumbnail,
         owner: req.user._id,
     });
 
@@ -53,7 +59,9 @@ const createProject = asyncHandler(async (req, res) => {
 });
 
 
-
+// ==========================================
+// GET ALL PROJECTS
+// ==========================================
 
 const getAllProjects = asyncHandler(async (req, res) => {
     const {
@@ -78,6 +86,10 @@ const getAllProjects = asyncHandler(async (req, res) => {
 
     const filter = {};
 
+    // ------------------------------------------
+    // Search
+    // ------------------------------------------
+
     const escapeRegex = (value) => {
         return value.replace(
             /[.*+?^${}()|[\]\\]/g,
@@ -85,7 +97,6 @@ const getAllProjects = asyncHandler(async (req, res) => {
         );
     };
 
-    // Search
     if (search?.trim()) {
         const searchValue = escapeRegex(
             search.trim()
@@ -107,7 +118,10 @@ const getAllProjects = asyncHandler(async (req, res) => {
         ];
     }
 
-    // Tech stack filter
+    // ------------------------------------------
+    // Tech Stack Filter
+    // ------------------------------------------
+
     if (techStack?.trim()) {
         const techValue = escapeRegex(
             techStack.trim()
@@ -118,6 +132,10 @@ const getAllProjects = asyncHandler(async (req, res) => {
             $options: "i",
         };
     }
+
+    // ------------------------------------------
+    // Sorting
+    // ------------------------------------------
 
     const allowedSortOptions = [
         "latest",
@@ -132,7 +150,10 @@ const getAllProjects = asyncHandler(async (req, res) => {
         );
     }
 
-    // Base aggregation
+    // ------------------------------------------
+    // Aggregation Pipeline
+    // ------------------------------------------
+
     const pipeline = [
         {
             $match: filter,
@@ -199,7 +220,10 @@ const getAllProjects = asyncHandler(async (req, res) => {
         },
     ];
 
+    // ------------------------------------------
     // Sorting
+    // ------------------------------------------
+
     if (sortBy === "latest") {
         pipeline.push({
             $sort: {
@@ -225,7 +249,10 @@ const getAllProjects = asyncHandler(async (req, res) => {
         });
     }
 
+    // ------------------------------------------
     // Pagination
+    // ------------------------------------------
+
     pipeline.push(
         {
             $skip: skip,
@@ -235,7 +262,10 @@ const getAllProjects = asyncHandler(async (req, res) => {
         }
     );
 
-    // Populate owner
+    // ------------------------------------------
+    // Populate Owner
+    // ------------------------------------------
+
     pipeline.push(
         {
             $lookup: {
@@ -253,7 +283,10 @@ const getAllProjects = asyncHandler(async (req, res) => {
         }
     );
 
-    // Only expose required owner fields
+    // ------------------------------------------
+    // Expose Safe Owner Fields
+    // ------------------------------------------
+
     pipeline.push({
         $project: {
             title: 1,
@@ -296,6 +329,7 @@ const getAllProjects = asyncHandler(async (req, res) => {
             200,
             {
                 projects,
+
                 pagination: {
                     currentPage: pageNumber,
                     limit: limitNumber,
@@ -313,6 +347,9 @@ const getAllProjects = asyncHandler(async (req, res) => {
 });
 
 
+// ==========================================
+// GET PROJECT BY ID
+// ==========================================
 
 const getProjectById = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
@@ -325,14 +362,19 @@ const getProjectById = asyncHandler(async (req, res) => {
         .lean();
 
     if (!project) {
-        throw new ApiError(404, "Project not found");
+        throw new ApiError(
+            404,
+            "Project not found"
+        );
     }
 
-    const commentsCount = await Comment.countDocuments({
-        project: projectId,
-    });
+    const commentsCount =
+        await Comment.countDocuments({
+            project: projectId,
+        });
 
-    const likesCount = project.likes?.length || 0;
+    const likesCount =
+        project.likes?.length || 0;
 
     const isLiked = req.user
         ? project.likes?.some(
@@ -357,6 +399,9 @@ const getProjectById = asyncHandler(async (req, res) => {
 });
 
 
+// ==========================================
+// UPDATE PROJECT
+// ==========================================
 
 const updateProject = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
@@ -367,16 +412,23 @@ const updateProject = asyncHandler(async (req, res) => {
         techStack,
         githubUrl,
         liveUrl,
-        thumbnail,
     } = req.body;
 
-    const project = await Project.findById(projectId);
+    const project =
+        await Project.findById(projectId);
 
     if (!project) {
-        throw new ApiError(404, "Project not found");
+        throw new ApiError(
+            404,
+            "Project not found"
+        );
     }
 
-    if (project.owner.toString() !== req.user._id.toString()) {
+    // Check ownership
+    if (
+        project.owner.toString() !==
+        req.user._id.toString()
+    ) {
         throw new ApiError(
             403,
             "You are not allowed to update this project"
@@ -390,11 +442,15 @@ const updateProject = asyncHandler(async (req, res) => {
     }
 
     if (description !== undefined) {
-        updateData.description = description.trim();
+        updateData.description =
+            description.trim();
     }
 
     if (techStack !== undefined) {
-        if (!Array.isArray(techStack) || techStack.length === 0) {
+        if (
+            !Array.isArray(techStack) ||
+            techStack.length === 0
+        ) {
             throw new ApiError(
                 400,
                 "Tech stack must contain at least one technology"
@@ -405,15 +461,13 @@ const updateProject = asyncHandler(async (req, res) => {
     }
 
     if (githubUrl !== undefined) {
-        updateData.githubUrl = githubUrl.trim();
+        updateData.githubUrl =
+            githubUrl.trim();
     }
 
     if (liveUrl !== undefined) {
-        updateData.liveUrl = liveUrl.trim();
-    }
-
-    if (thumbnail !== undefined) {
-        updateData.thumbnail = thumbnail.trim();
+        updateData.liveUrl =
+            liveUrl.trim();
     }
 
     if (Object.keys(updateData).length === 0) {
@@ -423,19 +477,20 @@ const updateProject = asyncHandler(async (req, res) => {
         );
     }
 
-    const updatedProject = await Project.findByIdAndUpdate(
-        projectId,
-        {
-            $set: updateData,
-        },
-        {
-            new: true,
-            runValidators: true,
-        }
-    ).populate(
-        "owner",
-        "fullName username avatar githubUsername"
-    );
+    const updatedProject =
+        await Project.findByIdAndUpdate(
+            projectId,
+            {
+                $set: updateData,
+            },
+            {
+                new: true,
+                runValidators: true,
+            }
+        ).populate(
+            "owner",
+            "fullName username avatar githubUsername"
+        );
 
     return res.status(200).json(
         new ApiResponse(
@@ -447,17 +502,28 @@ const updateProject = asyncHandler(async (req, res) => {
 });
 
 
+// ==========================================
+// DELETE PROJECT
+// ==========================================
 
 const deleteProject = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
 
-    const project = await Project.findById(projectId);
+    const project =
+        await Project.findById(projectId);
 
     if (!project) {
-        throw new ApiError(404, "Project not found");
+        throw new ApiError(
+            404,
+            "Project not found"
+        );
     }
 
-    if (project.owner.toString() !== req.user._id.toString()) {
+    // Check ownership
+    if (
+        project.owner.toString() !==
+        req.user._id.toString()
+    ) {
         throw new ApiError(
             403,
             "You are not allowed to delete this project"
@@ -476,24 +542,36 @@ const deleteProject = asyncHandler(async (req, res) => {
 });
 
 
-
+// ==========================================
+// LIKE PROJECT
+// ==========================================
 
 const likeProject = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
     const userId = req.user._id;
 
-    const project = await Project.findById(projectId);
+    const project =
+        await Project.findById(projectId);
 
     if (!project) {
-        throw new ApiError(404, "Project not found");
+        throw new ApiError(
+            404,
+            "Project not found"
+        );
     }
 
-    const alreadyLiked = project.likes.some(
-        (id) => id.toString() === userId.toString()
-    );
+    const alreadyLiked =
+        project.likes.some(
+            (id) =>
+                id.toString() ===
+                userId.toString()
+        );
 
     if (alreadyLiked) {
-        throw new ApiError(409, "Project already liked");
+        throw new ApiError(
+            409,
+            "Project already liked"
+        );
     }
 
     project.likes.push(userId);
@@ -504,7 +582,8 @@ const likeProject = asyncHandler(async (req, res) => {
         new ApiResponse(
             200,
             {
-                likesCount: project.likes.length,
+                likesCount:
+                    project.likes.length,
             },
             "Project liked successfully"
         )
@@ -512,120 +591,186 @@ const likeProject = asyncHandler(async (req, res) => {
 });
 
 
-const unlikeProject = asyncHandler(async (req, res) => {
-    const { projectId } = req.params;
-    const userId = req.user._id;
+// ==========================================
+// UNLIKE PROJECT
+// ==========================================
 
-    const project = await Project.findById(projectId);
+const unlikeProject = asyncHandler(
+    async (req, res) => {
+        const { projectId } = req.params;
+        const userId = req.user._id;
 
-    if (!project) {
-        throw new ApiError(404, "Project not found");
-    }
+        const project =
+            await Project.findById(projectId);
 
-    const alreadyLiked = project.likes.some(
-        (id) => id.toString() === userId.toString()
-    );
-
-    if (!alreadyLiked) {
-        throw new ApiError(409, "Project is not liked yet");
-    }
-
-    project.likes = project.likes.filter(
-        (id) => id.toString() !== userId.toString()
-    );
-
-    await project.save();
-
-    return res.status(200).json(
-        new ApiResponse(
-            200,
-            {
-                likesCount: project.likes.length,
-            },
-            "Project unliked successfully"
-        )
-    );
-});
-
-
-
-const updateProjectThumbnail = asyncHandler(async (req, res) => {
-    const { projectId } = req.params;
-
-    if (!req.file) {
-        throw new ApiError(
-            400,
-            "Project thumbnail is required"
-        );
-    }
-
-    const project = await Project.findById(projectId);
-
-    if (!project) {
-        throw new ApiError(404, "Project not found");
-    }
-
-    // Only project owner can update thumbnail
-    if (
-        project.owner.toString() !==
-        req.user._id.toString()
-    ) {
-        throw new ApiError(
-            403,
-            "You are not authorized to update this project thumbnail"
-        );
-    }
-
-    const oldThumbnailPublicId =
-        project.thumbnail?.publicId;
-
-    const uploadedImage = await uploadToCloudinary(
-        req.file.buffer,
-        "codehub/project-thumbnails"
-    );
-
-    project.thumbnail = {
-        url: uploadedImage.url,
-        publicId: uploadedImage.publicId,
-    };
-
-    await project.save({
-        validateBeforeSave: false,
-    });
-
-    // Delete old thumbnail after DB update
-    if (oldThumbnailPublicId) {
-        try {
-            await deleteFromCloudinary(
-                oldThumbnailPublicId
-            );
-        } catch (error) {
-            console.error(
-                "Failed to delete old project thumbnail:",
-                error
+        if (!project) {
+            throw new ApiError(
+                404,
+                "Project not found"
             );
         }
+
+        const alreadyLiked =
+            project.likes.some(
+                (id) =>
+                    id.toString() ===
+                    userId.toString()
+            );
+
+        if (!alreadyLiked) {
+            throw new ApiError(
+                409,
+                "Project is not liked yet"
+            );
+        }
+
+        project.likes =
+            project.likes.filter(
+                (id) =>
+                    id.toString() !==
+                    userId.toString()
+            );
+
+        await project.save();
+
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                {
+                    likesCount:
+                        project.likes.length,
+                },
+                "Project unliked successfully"
+            )
+        );
     }
-
-    const updatedProject = await Project.findById(
-        projectId
-    )
-        .populate(
-            "owner",
-            "fullName username avatar githubUsername"
-        )
-        .lean();
-
-    return res.status(200).json(
-        new ApiResponse(
-            200,
-            updatedProject,
-            "Project thumbnail updated successfully"
-        )
-    );
-});
+);
 
 
+// ==========================================
+// UPDATE PROJECT THUMBNAIL
+// ==========================================
+
+const updateProjectThumbnail =
+    asyncHandler(async (req, res) => {
+        const { projectId } = req.params;
+
+        // Check file
+        if (!req.file) {
+            throw new ApiError(
+                400,
+                "Project thumbnail is required"
+            );
+        }
+
+        // Find project
+        const project =
+            await Project.findById(projectId);
+
+        if (!project) {
+            throw new ApiError(
+                404,
+                "Project not found"
+            );
+        }
+
+        // Check ownership
+        if (
+            project.owner.toString() !==
+            req.user._id.toString()
+        ) {
+            throw new ApiError(
+                403,
+                "You are not authorized to update this project thumbnail"
+            );
+        }
+
+        // Store old image public ID
+        const oldThumbnailPublicId =
+            project.thumbnail?.publicId;
+
+        // --------------------------------------
+        // Upload new image
+        // --------------------------------------
+
+        const newThumbnail =
+            await uploadImage(
+                req.file.buffer,
+                "codehub/project-thumbnails"
+            );
+
+        // --------------------------------------
+        // Update MongoDB
+        // --------------------------------------
+
+        try {
+            project.thumbnail =
+                newThumbnail;
+
+            await project.save({
+                validateBeforeSave: false,
+            });
+        } catch (error) {
+            // ----------------------------------
+            // Rollback Cloudinary upload
+            // ----------------------------------
+
+            try {
+                await deleteImage(
+                    newThumbnail.publicId
+                );
+            } catch (cleanupError) {
+                console.error(
+                    "Failed to cleanup new thumbnail:",
+                    cleanupError
+                );
+            }
+
+            throw error;
+        }
+
+        // --------------------------------------
+        // Delete old image
+        // --------------------------------------
+
+        if (oldThumbnailPublicId) {
+            try {
+                await deleteImage(
+                    oldThumbnailPublicId
+                );
+            } catch (error) {
+                console.error(
+                    "Failed to delete old thumbnail:",
+                    error
+                );
+            }
+        }
+
+        // --------------------------------------
+        // Get updated project
+        // --------------------------------------
+
+        const updatedProject =
+            await Project.findById(projectId)
+                .populate(
+                    "owner",
+                    "fullName username avatar githubUsername"
+                )
+                .lean();
+
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                updatedProject,
+                "Project thumbnail updated successfully"
+            )
+        );
+    });
+
+
+// ==========================================
+// EXPORTS
+// ==========================================
 
 export {
     createProject,
