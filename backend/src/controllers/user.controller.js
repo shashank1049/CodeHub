@@ -7,7 +7,7 @@ import { validatePassword } from "../utils/validatePasseord.js";
 import Project from "../models/project.model.js";
 import Comment from "../models/comment.model.js";
 import { getGithubRepositories, getGithubRepository } from "../services/github.service.js";
-
+import { uploadToCloudinary, deleteFromCloudinary } from "../services/cloudinary.service.js";
 
 
 
@@ -316,9 +316,57 @@ const updateProfile = asyncHandler(async (req, res) => {
         updateData.githubUsername = githubUsername.trim();
     }
 
-    if (avatar !== undefined) {
-        updateData.avatar = avatar.trim();
+    const updateAvatar = asyncHandler(async (req, res) => {
+    if (!req.file) {
+        throw new ApiError(400, "Avatar image is required");
     }
+
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    const oldAvatarPublicId = user.avatar?.publicId;
+
+    const uploadedImage = await uploadToCloudinary(
+        req.file.buffer,
+        "codehub/avatars"
+    );
+
+    user.avatar = {
+        url: uploadedImage.url,
+        publicId: uploadedImage.publicId,
+    };
+
+    await user.save({
+        validateBeforeSave: false,
+    });
+
+    // Delete old image only after successful DB update
+    if (oldAvatarPublicId) {
+        try {
+            await deleteFromCloudinary(oldAvatarPublicId);
+        } catch (error) {
+            console.error(
+                "Failed to delete old avatar:",
+                error
+            );
+        }
+    }
+
+    const updatedUser = await User.findById(
+        req.user._id
+    ).select("-password -refreshToken");
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            updatedUser,
+            "Avatar updated successfully"
+        )
+    );
+});
 
     if (coverImage !== undefined) {
         updateData.coverImage = coverImage.trim();
@@ -536,6 +584,117 @@ const getGithubRepositoryForUser = asyncHandler(
 
 
 
+const updateAvatar = asyncHandler(async (req, res) => {
+    if (!req.file) {
+        throw new ApiError(400, "Avatar image is required");
+    }
+
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    const oldAvatarPublicId = user.avatar?.publicId;
+
+    const uploadedImage = await uploadToCloudinary(
+        req.file.buffer,
+        "codehub/avatars"
+    );
+
+    user.avatar = {
+        url: uploadedImage.url,
+        publicId: uploadedImage.publicId,
+    };
+
+    await user.save({
+        validateBeforeSave: false,
+    });
+
+    // Delete old image only after successful DB update
+    if (oldAvatarPublicId) {
+        try {
+            await deleteFromCloudinary(oldAvatarPublicId);
+        } catch (error) {
+            console.error(
+                "Failed to delete old avatar:",
+                error
+            );
+        }
+    }
+
+    const updatedUser = await User.findById(
+        req.user._id
+    ).select("-password -refreshToken");
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            updatedUser,
+            "Avatar updated successfully"
+        )
+    );
+});
+
+
+
+const updateCoverImage = asyncHandler(async (req, res) => {
+    if (!req.file) {
+        throw new ApiError(400, "Cover image is required");
+    }
+
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    const oldCoverImagePublicId =
+        user.coverImage?.publicId;
+
+    const uploadedImage = await uploadToCloudinary(
+        req.file.buffer,
+        "codehub/cover-images"
+    );
+
+    user.coverImage = {
+        url: uploadedImage.url,
+        publicId: uploadedImage.publicId,
+    };
+
+    await user.save({
+        validateBeforeSave: false,
+    });
+
+    // Delete old image only after successful DB update
+    if (oldCoverImagePublicId) {
+        try {
+            await deleteFromCloudinary(
+                oldCoverImagePublicId
+            );
+        } catch (error) {
+            console.error(
+                "Failed to delete old cover image:",
+                error
+            );
+        }
+    }
+
+    const updatedUser = await User.findById(
+        req.user._id
+    ).select("-password -refreshToken");
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            updatedUser,
+            "Cover image updated successfully"
+        )
+    );
+});
+
+
+
 
 
 
@@ -549,5 +708,7 @@ export {
     updateProfile,
     getDeveloperProfile,
     getGithubRepositoriesForUser,
-    getGithubRepositoryForUser
+    getGithubRepositoryForUser,
+    updateAvatar,
+    updateCoverImage,
 }

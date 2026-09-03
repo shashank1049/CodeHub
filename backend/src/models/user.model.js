@@ -32,14 +32,26 @@ const userSchema = new mongoose.Schema(
             minlength: 6,
         },
 
-        avatar: {
-            type: String,
-            default: "",
+       avatar: {
+            url: {
+                type: String,
+                default: "",
+            },
+            publicId: {
+                type: String,
+                default: "",
+            },
         },
 
         coverImage: {
-            type: String,
-            default: "",
+            url: {
+                type: String,
+                default: "",
+            },
+            publicId: {
+                type: String,
+                default: "",
+            },
         },
 
         bio: {

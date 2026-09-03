@@ -40,9 +40,14 @@ const projectSchema = new mongoose.Schema(
         },
 
         thumbnail: {
-            type: String,
-            trim: true,
-            default: "",
+            url: {
+                type: String,
+                default: "",
+            },
+            publicId: {
+                type: String,
+                default: "",
+            },
         },
 
         owner: {
@@ -63,6 +68,7 @@ const projectSchema = new mongoose.Schema(
         timestamps: true,
     }
 );
+
 
 const Project = mongoose.model("Project", projectSchema);
 

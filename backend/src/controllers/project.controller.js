@@ -3,6 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import Comment from "../models/comment.model.js";
+import {uploadToCloudinary, deleteFromCloudinary,} from "../services/cloudinary.service.js";
 
 
 
@@ -548,6 +549,81 @@ const unlikeProject = asyncHandler(async (req, res) => {
 
 
 
+const updateProjectThumbnail = asyncHandler(async (req, res) => {
+    const { projectId } = req.params;
+
+    if (!req.file) {
+        throw new ApiError(
+            400,
+            "Project thumbnail is required"
+        );
+    }
+
+    const project = await Project.findById(projectId);
+
+    if (!project) {
+        throw new ApiError(404, "Project not found");
+    }
+
+    // Only project owner can update thumbnail
+    if (
+        project.owner.toString() !==
+        req.user._id.toString()
+    ) {
+        throw new ApiError(
+            403,
+            "You are not authorized to update this project thumbnail"
+        );
+    }
+
+    const oldThumbnailPublicId =
+        project.thumbnail?.publicId;
+
+    const uploadedImage = await uploadToCloudinary(
+        req.file.buffer,
+        "codehub/project-thumbnails"
+    );
+
+    project.thumbnail = {
+        url: uploadedImage.url,
+        publicId: uploadedImage.publicId,
+    };
+
+    await project.save({
+        validateBeforeSave: false,
+    });
+
+    // Delete old thumbnail after DB update
+    if (oldThumbnailPublicId) {
+        try {
+            await deleteFromCloudinary(
+                oldThumbnailPublicId
+            );
+        } catch (error) {
+            console.error(
+                "Failed to delete old project thumbnail:",
+                error
+            );
+        }
+    }
+
+    const updatedProject = await Project.findById(
+        projectId
+    )
+        .populate(
+            "owner",
+            "fullName username avatar githubUsername"
+        )
+        .lean();
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            updatedProject,
+            "Project thumbnail updated successfully"
+        )
+    );
+});
 
 
 
@@ -558,5 +634,6 @@ export {
     updateProject,
     deleteProject,
     likeProject,
-    unlikeProject
+    unlikeProject,
+    updateProjectThumbnail,
 };

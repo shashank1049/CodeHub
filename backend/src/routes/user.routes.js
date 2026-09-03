@@ -9,7 +9,9 @@ import {
     updateProfile,
     getDeveloperProfile,
     getGithubRepositoriesForUser,
-    getGithubRepositoryForUser
+    getGithubRepositoryForUser,
+    updateAvatar,
+    updateCoverImage,
 
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -20,7 +22,9 @@ import {
     validateChangePassword,
     validateUpdateProfile,
 } from "../validators/user.validator.js";
-
+import upload  from "../middlewares/upload.middleware.js";
+// import { testCloudinaryUpload } from "../services/cloudinary.service.js";
+// import {diagnoseCloudinaryUpload} from "../services/cloudinary.service.js";
 
 
 
@@ -59,6 +63,52 @@ router.patch(
     changePassword
 );
 router.patch("/update-profile", verifyJWT,validateUpdateProfile, updateProfile)
+
+
+
+
+
+// router.get("/cloudinary-test", async (req, res) => {
+//     try {
+//         const result = await testCloudinaryUpload();
+
+//         return res.status(200).json({
+//             success: true,
+//             data: result,
+//         });
+//     } catch (error) {
+//         console.error("Cloudinary direct upload failed:", error);
+
+//         return res.status(error.http_code || 500).json({
+//             success: false,
+//             message: error.message,
+//             http_code: error.http_code,
+//         });
+//     }
+// });
+// router.get("/cloudinary-diagnose", async (req, res) => {
+//     try {
+//         const result = await diagnoseCloudinaryUpload();
+
+//         return res.status(200).json({
+//             success: true,
+//             data: result,
+//         });
+//     } catch (error) {
+//         console.error("Cloudinary diagnostic failed:", error);
+
+//         return res.status(500).json({
+//             success: false,
+//             message: error.message,
+//         });
+//     }
+// });
+
+
+
+
+
+
 router.get(
     "/:username/github/:repoName", githubLimiter,
     getGithubRepositoryForUser
@@ -71,6 +121,22 @@ router.get(
     "/:username",
     getDeveloperProfile
 );
+router.patch(
+    "/avatar",
+    verifyJWT,
+    upload.single("avatar"),
+    updateAvatar
+);
+
+router.patch(
+    "/cover-image",
+    verifyJWT,
+    upload.single("coverImage"),
+    updateCoverImage
+);
+
+
+
 
 
 

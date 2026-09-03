@@ -5,9 +5,9 @@ const storage = multer.memoryStorage();
 const fileFilter = (req, file, cb) => {
     const allowedTypes = [
         "image/jpeg",
+        "image/jpg",
         "image/png",
         "image/webp",
-        "image/jpg",
     ];
 
     if (allowedTypes.includes(file.mimetype)) {
@@ -15,7 +15,7 @@ const fileFilter = (req, file, cb) => {
     } else {
         cb(
             new Error(
-                "Only JPEG, PNG and WebP images are allowed"
+                "Only JPG, JPEG, PNG and WebP images are allowed"
             ),
             false
         );
@@ -30,4 +30,4 @@ const upload = multer({
     fileFilter,
 });
 
-export { upload };
+export default upload;
