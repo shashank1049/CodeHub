@@ -519,12 +519,33 @@ const deleteProject = asyncHandler(async (req, res) => {
         );
     }
 
-    await Project.findByIdAndDelete(projectId);
+    // Store thumbnail public ID
+    const thumbnailPublicId =
+        project.thumbnail?.publicId;
+
+    // Delete project from MongoDB
+    await Project.findByIdAndDelete(
+        projectId
+    );
+
+    // Delete thumbnail from Cloudinary
+    if (thumbnailPublicId) {
+        try {
+            await deleteImage(
+                thumbnailPublicId
+            );
+        } catch (error) {
+            console.error(
+                "Failed to delete project thumbnail from Cloudinary:",
+                error
+            );
+        }
+    }
 
     return res.status(200).json(
         new ApiResponse(
             200,
-            {},
+            null,
             "Project deleted successfully"
         )
     );
