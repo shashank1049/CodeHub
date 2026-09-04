@@ -6,6 +6,8 @@ import userRouter from "./routes/user.routes.js"
 import projectRouter from "./routes/project.routes.js";
 import commentRouter from "./routes/comment.routes.js";
 import notificationRouter from "./routes/notification.routes.js";
+import followRouter from "./routes/follow.routes.js";
+import searchRouter from "./routes/search.routes.js";
 
 
 
@@ -29,6 +31,8 @@ app.use("/api/v1/users", userRouter)
 app.use("/api/v1/projects", projectRouter);
 app.use("/api/v1/comments", commentRouter);
 app.use("/api/v1/notifications", notificationRouter);
+app.use("/api/v1/follows", followRouter);
+app.use("/api/v1/search", searchRouter);
 
 
 
