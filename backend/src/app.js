@@ -8,6 +8,7 @@ import commentRouter from "./routes/comment.routes.js";
 import notificationRouter from "./routes/notification.routes.js";
 import followRouter from "./routes/follow.routes.js";
 import searchRouter from "./routes/search.routes.js";
+import adminRouter from "./routes/admin.routes.js";
 
 
 
@@ -33,6 +34,7 @@ app.use("/api/v1/comments", commentRouter);
 app.use("/api/v1/notifications", notificationRouter);
 app.use("/api/v1/follows", followRouter);
 app.use("/api/v1/search", searchRouter);
+app.use("/api/v1/admin", adminRouter);
 
 
 

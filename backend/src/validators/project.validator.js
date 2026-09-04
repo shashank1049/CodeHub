@@ -34,7 +34,6 @@ const validateCreateProject = (req, res, next) => {
     next();
 };
 
-
 const validateUpdateProject = (req, res, next) => {
     const allowedFields = [
         "title",
@@ -42,13 +41,13 @@ const validateUpdateProject = (req, res, next) => {
         "techStack",
         "githubUrl",
         "liveUrl",
-        "thumbnail",
     ];
 
     const providedFields = Object.keys(req.body);
 
     const hasValidField = providedFields.some(
-        (field) => allowedFields.includes(field)
+        (field) =>
+            allowedFields.includes(field)
     );
 
     if (!hasValidField) {
@@ -73,7 +72,6 @@ const validateUpdateProject = (req, res, next) => {
 
     next();
 };
-
 
 export {
     validateCreateProject,

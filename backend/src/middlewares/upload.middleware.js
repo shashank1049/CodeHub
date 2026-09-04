@@ -1,4 +1,5 @@
 import multer from "multer";
+import { ApiError } from "../utils/ApiError.js";
 
 const storage = multer.memoryStorage();
 
@@ -14,7 +15,8 @@ const fileFilter = (req, file, cb) => {
         cb(null, true);
     } else {
         cb(
-            new Error(
+            new ApiError(
+                400,
                 "Only JPG, JPEG, PNG and WebP images are allowed"
             ),
             false
