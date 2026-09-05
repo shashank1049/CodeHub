@@ -9,9 +9,9 @@ const { app } = await import("./app.js");
 
 connectDB()
     .then(() => {
-        app.listen(8000, "127.0.0.1", () => {
+        app.listen(8000, () => {
             console.log(
-                "Server is running on http://127.0.0.1:8000"
+                "Server is running on http://localhost:8000"
             );
         });
     })
