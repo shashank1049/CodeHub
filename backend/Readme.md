@@ -235,13 +235,13 @@ npm run dev
 The backend will run on:
 
 ```text
-http://127.0.0.1:8000
+http://localhost:8000
 ```
 
 Base API URL:
 
 ```text
-http://127.0.0.1:8000/api/v1
+http://localhost:8000/api/v1
 ```
 
 ---
