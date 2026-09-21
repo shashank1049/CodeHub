@@ -161,12 +161,14 @@ const loginUser = asyncHandler(async (req, res) => {
         await User.findById(user._id)
             .select("-password -refreshToken");
 
+    // COOKIE SETTINGS FOR VERCEL + RENDER
     const cookieOptions = {
         httpOnly: true,
-        secure:
-            process.env.NODE_ENV ===
-            "production",
-        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        sameSite:
+            process.env.NODE_ENV === "production"
+                ? "none"
+                : "lax",
     };
 
     return res
@@ -226,8 +228,7 @@ const refreshAccessToken = asyncHandler(
             const decodedToken =
                 jwt.verify(
                     incomingRefreshToken,
-                    process.env
-                        .REFRESH_TOKEN_SECRET
+                    process.env.REFRESH_TOKEN_SECRET
                 );
 
             const user =
@@ -260,12 +261,14 @@ const refreshAccessToken = asyncHandler(
                     user
                 );
 
+            // COOKIE SETTINGS FOR VERCEL + RENDER
             const cookieOptions = {
                 httpOnly: true,
-                secure:
-                    process.env.NODE_ENV ===
-                    "production",
-                sameSite: "lax",
+                secure: process.env.NODE_ENV === "production",
+                sameSite:
+                    process.env.NODE_ENV === "production"
+                        ? "none"
+                        : "lax",
             };
 
             return res
@@ -314,12 +317,14 @@ const logoutUser = asyncHandler(
             }
         );
 
+        // COOKIE SETTINGS MUST MATCH LOGIN
         const cookieOptions = {
             httpOnly: true,
-            secure:
-                process.env.NODE_ENV ===
-                "production",
-            sameSite: "lax",
+            secure: process.env.NODE_ENV === "production",
+            sameSite:
+                process.env.NODE_ENV === "production"
+                    ? "none"
+                    : "lax",
         };
 
         return res
