@@ -43,7 +43,7 @@ router.delete("projectId", verifyJWT, deleteProject);
 router.post( "/:projectId/like", verifyJWT, likeProject);
 
 router.delete( "/:projectId/like", verifyJWT, unlikeProject);
-router.get("/",verifyJWT, getAllProjects)
+router.get("/",optionalAuth, getAllProjects)
 
 
 
